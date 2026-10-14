@@ -1,0 +1,98 @@
+name: crdb-lab
+
+x-roach-common: &roach-common
+  image: cockroachdb/cockroach:v26.2.5
+  networks:
+    - roachnet
+
+services:
+  roach1:
+    <<: *roach-common
+    container_name: roach1
+    hostname: roach1
+    command:
+      - start
+      - --insecure
+      - --listen-addr=:26357
+      - --advertise-addr=roach1:26357
+      - --sql-addr=:26257
+      - --advertise-sql-addr=roach1:26257
+      - --http-addr=:8080
+      - --join=roach1:26357,roach2:26357,roach3:26357
+      - --store=path=/cockroach/cockroach-data
+      - --cache=256MiB
+      - --max-sql-memory=256MiB
+    ports:
+      - "26257:26257"   # SQL  -> direct access to node 1 (for experiments)
+      - "8080:8080"     # Admin UI
+    volumes:
+      - roach1-data:/cockroach/cockroach-data
+
+  roach2:
+    <<: *roach-common
+    container_name: roach2
+    hostname: roach2
+    command:
+      - start
+      - --insecure
+      - --listen-addr=:26357
+      - --advertise-addr=roach2:26357
+      - --sql-addr=:26257
+      - --advertise-sql-addr=roach2:26257
+      - --http-addr=:8080
+      - --join=roach1:26357,roach2:26357,roach3:26357
+      - --store=path=/cockroach/cockroach-data
+      - --cache=256MiB
+      - --max-sql-memory=256MiB
+    ports:
+      - "26258:26257"
+      - "8081:8080"
+    volumes:
+      - roach2-data:/cockroach/cockroach-data
+
+  roach3:
+    <<: *roach-common
+    container_name: roach3
+    hostname: roach3
+    command:
+      - start
+      - --insecure
+      - --listen-addr=:26357
+      - --advertise-addr=roach3:26357
+      - --sql-addr=:26257
+      - --advertise-sql-addr=roach3:26257
+      - --http-addr=:8080
+      - --join=roach1:26357,roach2:26357,roach3:26357
+      - --store=path=/cockroach/cockroach-data
+      - --cache=256MiB
+      - --max-sql-memory=256MiB
+    ports:
+      - "26259:26257"
+      - "8082:8080"
+    volumes:
+      - roach3-data:/cockroach/cockroach-data
+
+  haproxy:
+    image: haproxy:3.2
+    container_name: haproxy
+    hostname: haproxy
+    networks:
+      - roachnet
+    ports:
+      - "26000:26000"   # SQL through the load balancer
+      - "8404:8404"     # HAProxy stats page
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - roach1
+      - roach2
+      - roach3
+
+networks:
+  roachnet:
+    driver: bridge
+
+volumes:
+  roach1-data:
+  roach2-data:
+  roach3-data:

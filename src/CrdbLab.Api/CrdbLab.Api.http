@@ -1,0 +1,36 @@
+@baseUrl = http://localhost:5080
+# After creating a customer, paste its id here:
+@customerId = 00000000-0000-0000-0000-000000000000
+
+### Which CockroachDB node served this query?
+GET {{baseUrl}}/db/node
+
+### Create a customer
+POST {{baseUrl}}/customers
+Content-Type: application/json
+
+{ "name": "Alice" }
+
+### List customers
+GET {{baseUrl}}/customers
+
+### Get one customer
+GET {{baseUrl}}/customers/{{customerId}}
+
+### Rename a customer
+PUT {{baseUrl}}/customers/{{customerId}}
+Content-Type: application/json
+
+{ "name": "Alice Smith" }
+
+### Add a transaction
+POST {{baseUrl}}/customers/{{customerId}}/transactions
+Content-Type: application/json
+
+{ "amount": 150.75 }
+
+### List a customer's transactions
+GET {{baseUrl}}/customers/{{customerId}}/transactions
+
+### Delete a customer (fails with 409 while it has transactions)
+DELETE {{baseUrl}}/customers/{{customerId}}
